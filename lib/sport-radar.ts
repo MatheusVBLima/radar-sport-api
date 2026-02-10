@@ -1,14 +1,15 @@
-import axios from "axios"
+const BASE_URL = "https://stats.fn.sportradar.com"
+const S5_BASE_URL = "https://s5.sir.sportradar.com"
 
-const api = axios.create({
-  baseURL: "https://stats.fn.sportradar.com/",
-  timeout: 15000,
-})
-
-const s5Api = axios.create({
-  baseURL: "https://s5.sir.sportradar.com/",
-  timeout: 15000,
-})
+async function fetchJson(url: string) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
 
 export const BETTING_HOUSES = [
   { id: "bet365", name: "Bet365", color: "#027b5b" },
@@ -37,28 +38,20 @@ export async function getCategories(
   bettingHouse: string,
   sportId: number
 ) {
-  try {
-    const res = await api.get(
-      `${bettingHouse}/en/Europe:Berlin/gismo/config_tree_mini/41/0/${sportId}`
-    )
-    return res.data?.doc?.[0]?.data?.[0] ?? null
-  } catch {
-    return null
-  }
+  const data = await fetchJson(
+    `${BASE_URL}/${bettingHouse}/en/Europe:Berlin/gismo/config_tree_mini/41/0/${sportId}`
+  )
+  return data?.doc?.[0]?.data?.[0] ?? null
 }
 
 export async function getSeasonMeta(
   bettingHouse: string,
   seasonId: number
 ) {
-  try {
-    const res = await api.get(
-      `${bettingHouse}/en/Europe:Berlin/gismo/stats_season_meta/${seasonId}`
-    )
-    return res.data?.doc?.[0] ?? null
-  } catch {
-    return null
-  }
+  const data = await fetchJson(
+    `${BASE_URL}/${bettingHouse}/en/Europe:Berlin/gismo/stats_season_meta/${seasonId}`
+  )
+  return data?.doc?.[0] ?? null
 }
 
 export async function getSeasonFixtures(
@@ -66,41 +59,28 @@ export async function getSeasonFixtures(
   seasonId: number,
   page: number = 1
 ) {
-  try {
-    const res = await api.get(
-      `${bettingHouse}/en/Europe:Berlin/gismo/stats_season_fixtures2/${seasonId}/${page}`
-    )
-    return res.data?.doc?.[0] ?? null
-  } catch {
-    return null
-  }
+  const data = await fetchJson(
+    `${BASE_URL}/${bettingHouse}/en/Europe:Berlin/gismo/stats_season_fixtures2/${seasonId}/${page}`
+  )
+  return data?.doc?.[0] ?? null
 }
 
 export async function getMatchOdds(
   bettingHouse: string,
   matchId: number
 ) {
-  try {
-    const res = await api.get(
-      `${bettingHouse}/en/Europe:Berlin/gismo/match_get/${matchId}`
-    )
-    return res.data?.doc?.[0] ?? null
-  } catch {
-    return null
-  }
+  const data = await fetchJson(
+    `${BASE_URL}/${bettingHouse}/en/Europe:Berlin/gismo/match_get/${matchId}`
+  )
+  return data?.doc?.[0] ?? null
 }
 
 export async function getCommonTranslations(
   langId: string = "5bc333c9e86aeb31125b4b35e9038eb5"
 ) {
-  try {
-    const res = await s5Api.get(
-      `translations/common/en.${langId}.json`
-    )
-    return res.data
-  } catch {
-    return null
-  }
+  return await fetchJson(
+    `${S5_BASE_URL}/translations/common/en.${langId}.json`
+  )
 }
 
 export interface OddsData {

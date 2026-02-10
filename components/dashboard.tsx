@@ -34,13 +34,17 @@ export function Dashboard() {
   const [customAmount, setCustomAmount] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>("all")
+  const [shouldFetch, setShouldFetch] = useState(false)
 
-  const queryKey = `/api/surebet?sportId=${sportId}&houses=${houses.join(",")}`
+  const queryKey = shouldFetch
+    ? `/api/surebet?sportId=${sportId}&houses=${houses.join(",")}`
+    : null
 
   const {
     data,
     error,
     isLoading,
+    isValidating,
     mutate,
   } = useSWR<{
     sureBets: SureBet[]
@@ -49,18 +53,23 @@ export function Dashboard() {
     oddsCollected: number
   }>(queryKey, fetcher, {
     revalidateOnFocus: false,
-    refreshInterval: 120000,
-    dedupingInterval: 30000,
+    revalidateOnReconnect: false,
+    dedupingInterval: 10000,
   })
 
+  const loading = isLoading || isValidating
   const sureBets = data?.sureBets ?? []
   const allMarkets = data?.allMarkets ?? []
   const matchesScanned = data?.matchesScanned ?? 0
   const bestProfit = sureBets.length > 0 ? sureBets[0].profit : 0
 
   const handleRefresh = useCallback(() => {
-    mutate()
-  }, [mutate])
+    if (!shouldFetch) {
+      setShouldFetch(true)
+    } else {
+      mutate()
+    }
+  }, [shouldFetch, mutate])
 
   const handleAmountChange = (amount: number) => {
     setInvestmentAmount(amount)
@@ -156,16 +165,16 @@ export function Dashboard() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleRefresh}
-                disabled={isLoading}
+                disabled={loading}
                 className={cn(
                   "flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50",
-                  isLoading && "cursor-wait"
+                  loading && "cursor-wait"
                 )}
               >
                 <RefreshCw
-                  className={cn("h-4 w-4", isLoading && "animate-spin")}
+                  className={cn("h-4 w-4", loading && "animate-spin")}
                 />
-                {isLoading ? "Analisando..." : "Buscar Mercados"}
+                {loading ? "Analisando..." : "Buscar Mercados"}
               </button>
               {data && (
                 <span className="text-xs text-muted-foreground">
@@ -185,7 +194,7 @@ export function Dashboard() {
           allMarketsCount={allMarkets.length}
           matchesScanned={matchesScanned}
           bestProfit={bestProfit}
-          isLoading={isLoading}
+          isLoading={loading}
         />
       </div>
 
@@ -247,13 +256,13 @@ export function Dashboard() {
           </div>
         )}
 
-        {isLoading && <LoadingSkeleton />}
+        {loading && <LoadingSkeleton />}
 
-        {!isLoading && !error && displayedMarkets.length === 0 && (
-          <EmptyState mode={viewMode} />
+        {!loading && !error && displayedMarkets.length === 0 && (
+          <EmptyState mode={viewMode} hasFetched={shouldFetch && !!data} />
         )}
 
-        {!isLoading && displayedMarkets.length > 0 && (
+        {!loading && displayedMarkets.length > 0 && (
           <div className="space-y-3">
             {viewMode === "surebet"
               ? sureBets.map((sb) => (

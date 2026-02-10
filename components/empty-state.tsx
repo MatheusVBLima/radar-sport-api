@@ -1,11 +1,29 @@
-import { SearchX, Target } from "lucide-react"
+import { SearchX, Target, Zap } from "lucide-react"
 
 interface EmptyStateProps {
   mode: "all" | "surebet"
+  hasFetched?: boolean
 }
 
-export function EmptyState({ mode }: EmptyStateProps) {
+export function EmptyState({ mode, hasFetched = true }: EmptyStateProps) {
   const isSureBet = mode === "surebet"
+
+  if (!hasFetched) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+          <Zap className="h-7 w-7 text-primary" />
+        </div>
+        <h3 className="mt-4 text-lg font-semibold text-foreground">
+          Pronto para escanear
+        </h3>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+          Selecione o esporte, as casas de aposta e clique em &quot;Buscar
+          Mercados&quot; para iniciar a analise de odds.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
