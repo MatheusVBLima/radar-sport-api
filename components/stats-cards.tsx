@@ -1,7 +1,8 @@
-import { TrendingUp, Search, Target, AlertTriangle } from "lucide-react"
+import { TrendingUp, Search, Target, BarChart3 } from "lucide-react"
 
 interface StatsCardsProps {
   sureBetsCount: number
+  allMarketsCount: number
   matchesScanned: number
   bestProfit: number
   isLoading: boolean
@@ -9,13 +10,21 @@ interface StatsCardsProps {
 
 export function StatsCards({
   sureBetsCount,
+  allMarketsCount,
   matchesScanned,
   bestProfit,
   isLoading,
 }: StatsCardsProps) {
   const cards = [
     {
-      label: "Sure Bets Encontradas",
+      label: "Mercados Encontrados",
+      value: isLoading ? "--" : String(allMarketsCount),
+      icon: BarChart3,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      label: "Sure Bets",
       value: isLoading ? "--" : String(sureBetsCount),
       icon: Target,
       color: "text-profit",
@@ -32,15 +41,8 @@ export function StatsCards({
       label: "Melhor Lucro",
       value: isLoading ? "--" : bestProfit > 0 ? `${bestProfit}%` : "0%",
       icon: TrendingUp,
-      color: "text-profit",
-      bgColor: "bg-profit/10",
-    },
-    {
-      label: "Status",
-      value: isLoading ? "Buscando..." : "Concluido",
-      icon: AlertTriangle,
-      color: isLoading ? "text-warning" : "text-profit",
-      bgColor: isLoading ? "bg-warning/10" : "bg-profit/10",
+      color: bestProfit > 0 ? "text-profit" : "text-muted-foreground",
+      bgColor: bestProfit > 0 ? "bg-profit/10" : "bg-muted",
     },
   ]
 

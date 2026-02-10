@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import axios from "axios"
 import {
   BETTING_HOUSES,
-  calculateSureBets,
+  analyzeMarkets,
   type OddsData,
 } from "@/lib/sport-radar"
 
@@ -178,7 +178,7 @@ export async function GET(request: Request) {
   const matches = await getFixturesForHouse(houses[0].id, sportId)
 
   if (matches.length === 0) {
-    return NextResponse.json({ sureBets: [], matchesScanned: 0 })
+    return NextResponse.json({ sureBets: [], allMarkets: [], matchesScanned: 0, oddsCollected: 0 })
   }
 
   // For each match, get odds from all selected houses
@@ -211,10 +211,11 @@ export async function GET(request: Request) {
 
   await Promise.allSettled(matchOddsPromises)
 
-  const sureBets = calculateSureBets(oddsDataList)
+  const { sureBets, allMarkets } = analyzeMarkets(oddsDataList)
 
   return NextResponse.json({
     sureBets,
+    allMarkets,
     matchesScanned: matches.length,
     oddsCollected: oddsDataList.length,
   })

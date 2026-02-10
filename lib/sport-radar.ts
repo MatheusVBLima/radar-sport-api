@@ -141,8 +141,32 @@ export interface SureBet {
   }[]
 }
 
-export function calculateSureBets(oddsDataList: OddsData[]): SureBet[] {
+export interface MarketComparison {
+  matchId: number
+  home: string
+  away: string
+  league: string
+  sport: string
+  startTime: string
+  market: string
+  totalImpliedProbability: number
+  margin: number
+  isSureBet: boolean
+  outcomes: {
+    name: string
+    bestOdds: number
+    bestHouse: string
+    bestHouseName: string
+    allOdds: { house: string; houseName: string; odds: number }[]
+  }[]
+}
+
+export function analyzeMarkets(oddsDataList: OddsData[]): {
+  sureBets: SureBet[]
+  allMarkets: MarketComparison[]
+} {
   const sureBets: SureBet[] = []
+  const allMarkets: MarketComparison[] = []
 
   for (const matchOdds of oddsDataList) {
     const marketMap = new Map<
@@ -171,29 +195,59 @@ export function calculateSureBets(oddsDataList: OddsData[]): SureBet[] {
       const outcomes = Array.from(outcomesMap.entries())
       if (outcomes.length < 2) continue
 
+      // Need odds from at least 2 different houses for a comparison
+      const allHouses = new Set<string>()
+      for (const [, houses] of outcomes) {
+        for (const h of houses) allHouses.add(h.house)
+      }
+      if (allHouses.size < 2) continue
+
       const bestOdds = outcomes.map(([name, houses]) => {
         const best = houses.reduce((a, b) => (a.odds > b.odds ? a : b))
-        return { name, ...best }
+        return {
+          name,
+          bestOdds: best.odds,
+          bestHouse: best.house,
+          bestHouseName: best.houseName,
+          allOdds: houses.sort((a, b) => b.odds - a.odds),
+        }
       })
 
       const totalImpliedProb = bestOdds.reduce(
-        (sum, o) => sum + 1 / o.odds,
+        (sum, o) => sum + 1 / o.bestOdds,
         0
       )
 
-      if (totalImpliedProb < 1) {
+      const isSureBet = totalImpliedProb < 1
+      const margin = (totalImpliedProb - 1) * 100
+
+      allMarkets.push({
+        matchId: matchOdds.matchId,
+        home: matchOdds.home,
+        away: matchOdds.away,
+        league: matchOdds.league,
+        sport: matchOdds.sport,
+        startTime: matchOdds.startTime,
+        market,
+        totalImpliedProbability: Math.round(totalImpliedProb * 10000) / 10000,
+        margin: Math.round(margin * 100) / 100,
+        isSureBet,
+        outcomes: bestOdds,
+      })
+
+      if (isSureBet) {
         const profit = (1 / totalImpliedProb - 1) * 100
         const totalStake = 100
 
         const bets = bestOdds.map((o) => {
           const stake =
-            (totalStake * (1 / o.odds)) / totalImpliedProb
-          const potentialReturn = stake * o.odds
+            (totalStake * (1 / o.bestOdds)) / totalImpliedProb
+          const potentialReturn = stake * o.bestOdds
           return {
             outcome: o.name,
-            bettingHouse: o.house,
-            bettingHouseName: o.houseName,
-            odds: o.odds,
+            bettingHouse: o.bestHouse,
+            bettingHouseName: o.bestHouseName,
+            odds: o.bestOdds,
             stake: Math.round(stake * 100) / 100,
             potentialReturn: Math.round(potentialReturn * 100) / 100,
           }
@@ -216,5 +270,8 @@ export function calculateSureBets(oddsDataList: OddsData[]): SureBet[] {
     }
   }
 
-  return sureBets.sort((a, b) => b.profit - a.profit)
+  return {
+    sureBets: sureBets.sort((a, b) => b.profit - a.profit),
+    allMarkets: allMarkets.sort((a, b) => a.margin - b.margin),
+  }
 }

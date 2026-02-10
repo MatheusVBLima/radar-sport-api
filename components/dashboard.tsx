@@ -2,15 +2,26 @@
 
 import { useState, useCallback } from "react"
 import useSWR from "swr"
-import { RefreshCw, DollarSign, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react"
+import {
+  RefreshCw,
+  DollarSign,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  BarChart3,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SportSelector } from "@/components/sport-selector"
 import { HouseSelector } from "@/components/house-selector"
 import { StatsCards } from "@/components/stats-cards"
 import { SureBetCard } from "@/components/surebet-card"
+import { MarketCard } from "@/components/market-card"
 import { EmptyState } from "@/components/empty-state"
 import { LoadingSkeleton } from "@/components/loading-skeleton"
-import type { SureBet } from "@/lib/sport-radar"
+import type { SureBet, MarketComparison } from "@/lib/sport-radar"
+
+type ViewMode = "all" | "surebet"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -22,6 +33,7 @@ export function Dashboard() {
   const [investmentAmount, setInvestmentAmount] = useState(100)
   const [customAmount, setCustomAmount] = useState("")
   const [filtersOpen, setFiltersOpen] = useState(true)
+  const [viewMode, setViewMode] = useState<ViewMode>("all")
 
   const queryKey = `/api/surebet?sportId=${sportId}&houses=${houses.join(",")}`
 
@@ -30,17 +42,19 @@ export function Dashboard() {
     error,
     isLoading,
     mutate,
-  } = useSWR<{ sureBets: SureBet[]; matchesScanned: number; oddsCollected: number }>(
-    queryKey,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      refreshInterval: 120000,
-      dedupingInterval: 30000,
-    }
-  )
+  } = useSWR<{
+    sureBets: SureBet[]
+    allMarkets: MarketComparison[]
+    matchesScanned: number
+    oddsCollected: number
+  }>(queryKey, fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: 120000,
+    dedupingInterval: 30000,
+  })
 
   const sureBets = data?.sureBets ?? []
+  const allMarkets = data?.allMarkets ?? []
   const matchesScanned = data?.matchesScanned ?? 0
   const bestProfit = sureBets.length > 0 ? sureBets[0].profit : 0
 
@@ -60,6 +74,8 @@ export function Dashboard() {
       setInvestmentAmount(num)
     }
   }
+
+  const displayedMarkets = viewMode === "surebet" ? allMarkets.filter((m) => m.isSureBet) : allMarkets
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
@@ -149,7 +165,7 @@ export function Dashboard() {
                 <RefreshCw
                   className={cn("h-4 w-4", isLoading && "animate-spin")}
                 />
-                {isLoading ? "Analisando..." : "Buscar Sure Bets"}
+                {isLoading ? "Analisando..." : "Buscar Mercados"}
               </button>
               {data && (
                 <span className="text-xs text-muted-foreground">
@@ -166,21 +182,59 @@ export function Dashboard() {
       <div className="mt-6">
         <StatsCards
           sureBetsCount={sureBets.length}
+          allMarketsCount={allMarkets.length}
           matchesScanned={matchesScanned}
           bestProfit={bestProfit}
           isLoading={isLoading}
         />
       </div>
 
-      {/* Results */}
+      {/* View Toggle + Results */}
       <div className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
-            Oportunidades de Arbitragem
-          </h2>
-          {sureBets.length > 0 && (
-            <span className="rounded-md bg-profit/10 px-2 py-1 text-xs font-medium text-profit">
-              {sureBets.length} encontrada{sureBets.length !== 1 ? "s" : ""}
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {/* View Mode Toggle */}
+          <div className="flex rounded-lg border border-border bg-muted p-1">
+            <button
+              onClick={() => setViewMode("all")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+                viewMode === "all"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              Todos os Mercados
+              {allMarkets.length > 0 && (
+                <span className="ml-1 rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+                  {allMarkets.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setViewMode("surebet")}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
+                viewMode === "surebet"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Target className="h-3.5 w-3.5" />
+              Apenas Sure Bets
+              {sureBets.length > 0 && (
+                <span className="ml-1 rounded-md bg-profit/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-profit">
+                  {sureBets.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {displayedMarkets.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {displayedMarkets.length} mercado{displayedMarkets.length !== 1 ? "s" : ""}{" "}
+              {viewMode === "all" ? "encontrados" : "com arbitragem"}{" "}
+              {viewMode === "all" && ` (${allMarkets.filter((m) => m.margin < 3).length} com margem baixa)`}
             </span>
           )}
         </div>
@@ -195,17 +249,26 @@ export function Dashboard() {
 
         {isLoading && <LoadingSkeleton />}
 
-        {!isLoading && !error && sureBets.length === 0 && <EmptyState />}
+        {!isLoading && !error && displayedMarkets.length === 0 && (
+          <EmptyState mode={viewMode} />
+        )}
 
-        {!isLoading && sureBets.length > 0 && (
+        {!isLoading && displayedMarkets.length > 0 && (
           <div className="space-y-3">
-            {sureBets.map((sb) => (
-              <SureBetCard
-                key={`${sb.matchId}-${sb.market}`}
-                sureBet={sb}
-                investmentAmount={investmentAmount}
-              />
-            ))}
+            {viewMode === "surebet"
+              ? sureBets.map((sb) => (
+                  <SureBetCard
+                    key={`${sb.matchId}-${sb.market}`}
+                    sureBet={sb}
+                    investmentAmount={investmentAmount}
+                  />
+                ))
+              : displayedMarkets.map((m) => (
+                  <MarketCard
+                    key={`${m.matchId}-${m.market}`}
+                    market={m}
+                  />
+                ))}
           </div>
         )}
       </div>
@@ -232,10 +295,10 @@ export function Dashboard() {
               2
             </div>
             <h4 className="mt-3 text-sm font-medium text-foreground">
-              Calculo de Arbitragem
+              Comparacao de Mercados
             </h4>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Cruzamos as odds e identificamos quando a soma das probabilidades implicitas e menor que 100%.
+              Cruzamos as odds entre casas e mostramos todos os mercados com diferenca de valor. Quanto menor a margem, mais proximo de uma sure bet.
             </p>
           </div>
           <div className="rounded-lg bg-muted/50 p-4">
@@ -243,10 +306,10 @@ export function Dashboard() {
               3
             </div>
             <h4 className="mt-3 text-sm font-medium text-foreground">
-              Distribuicao de Stakes
+              Arbitragem e Stakes
             </h4>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Calculamos exatamente quanto apostar em cada resultado para garantir lucro independente do resultado.
+              Quando encontramos uma sure bet, calculamos exatamente quanto apostar em cada resultado para garantir lucro.
             </p>
           </div>
         </div>
