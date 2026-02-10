@@ -1,37 +1,30 @@
 {
-  "name": "radar-sport-api",
-  "version": "1.0.4",
-  "description": "datas e estatisticas de das maiores casas de aposta",
-  "main": "index.js",
+  "name": "radar-sport-surebet",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "test": "node test.js"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/victorratts13/radar-sport-api.git"
-  },
-  "keywords": [
-    "bet365",
-    "betway",
-    "betFair",
-    "betano",
-    "rivalo",
-    "tipbet",
-    "888sport",
-    "sportingbet",
-    "radar-sports",
-    "radar-sport-api",
-    "s5",
-    "sport",
-    "api"
-  ],
-  "author": "Victor Ratts",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/victorratts13/radar-sport-api/issues"
-  },
-  "homepage": "https://github.com/victorratts13/radar-sport-api#readme",
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.7.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.400.0",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "swr": "^2.2.5",
+    "tailwind-merge": "^2.2.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
